@@ -16,8 +16,19 @@ type Quiz struct {
     answer string
 }
 
+type Config struct {
+    timelimit int
+    filename string
+}
+
 func main() {
-    csvFilename := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer'")
+    timelimit := 30
+    filename := "problems.csv"
+
+    config := Config{ timelimit, filename }
+
+    csvFilename := flag.String("csv", config.filename, "a csv file in the format of 'question,answer'")
+    nSecond := flag.Int("time", config.timelimit, "Timer limit for answer the question. argument should be passed in seconds.")
     flag.Parse()
     file, err := os.Open(*csvFilename)
     rand.Seed(time.Now().UnixNano())
@@ -28,12 +39,24 @@ func main() {
     }
 
     records := readQuiz(file)
+
+    startTimer(*nSecond)
+
     interactQuiz(records, limit)
 }
 
 func exit(msg string) {
     fmt.Printf(msg)
     os.Exit(1)
+}
+
+func startTimer(timelimit int) {
+    timer := time.NewTimer(time.Second * time.Duration(timelimit))
+    go func() {
+        <-timer.C
+        fmt.Printf("\n時間切れ！")
+        os.Exit(0)
+    }()
 }
 
 func readQuiz(file io.Reader) []Quiz {
