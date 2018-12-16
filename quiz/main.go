@@ -41,8 +41,6 @@ func main() {
         exit(fmt.Sprintf("Failed to open the CSV file: %s\n", *csvFilename))
     }
 
-    fmt.Println(*isShuffled)
-
     records := readQuiz(file)
 
     startTimer(*nSecond)
@@ -87,10 +85,7 @@ func interactQuiz(records []Quiz, limits int, isShuffled bool) {
     if isShuffled {
         quizNumbers = rand.Perm(n)[0:limits]
     } else {
-        quizNumbers = make([]int, limits)
-        for i := range quizNumbers {
-            quizNumbers[i] = i
-        }
+        quizNumbers = makeRange(limits)
     }
 
     for _, n := range quizNumbers {
@@ -111,4 +106,12 @@ func interactQuiz(records []Quiz, limits int, isShuffled bool) {
     }
 
     fmt.Printf("クイズ終了！ あなたの正解数は%d/%dで、正解率は%d%%", nCorrect, limits, nCorrect*100/limits)
+}
+
+func makeRange(n int) []int {
+    array := make([]int, n)
+    for i := range array {
+        array[i] = i
+    }
+    return array
 }
