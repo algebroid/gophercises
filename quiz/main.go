@@ -58,12 +58,12 @@ func interactQuiz(records []Quiz, limits int) {
     for _, n := range rand.Perm(n)[0:limits]{
         record := records[n]
         fmt.Printf("%s: ", record.statement)
-        text, _ := reader.ReadString('\n')
-        text = strings.Trim(text, "\n")
-        if text == "exit" {
+        answer, _ := reader.ReadString('\n')
+        answer = strings.Trim(answer, "\n")
+        if answer == "exit" {
             break
         }
-        if text == record.answer {
+        if answer == record.answer {
             fmt.Printf("正解！\n")
             nCorrect += 1
         } else {
