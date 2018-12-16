@@ -23,14 +23,14 @@ type Config struct {
 }
 
 func main() {
-    timelimit := 30
+    defaultTimeLimit := 30
     filename := "problems.csv"
     shuffle := true
 
-    defaultConfig := Config{ timelimit, filename, shuffle }
+    defaultConfig := Config{ defaultTimeLimit, filename, shuffle }
 
     csvFilename := flag.String("csv", defaultConfig.filename, "a csv file in the format of 'question,answer'")
-    nSecond := flag.Int("time", defaultConfig.timelimit, "Timer limit for answer the question. argument should be passed in seconds.")
+    timeLimit := flag.Int("time", defaultConfig.timelimit, "Timer limit for answer the question. argument should be passed in seconds.")
     isShuffled := flag.Bool("shuffle", defaultConfig.isShuffled, "Flags for whether Quizzes are shuffled or unshuffled.")
     flag.Parse()
     file, err := os.Open(*csvFilename)
@@ -43,9 +43,7 @@ func main() {
 
     records := readQuiz(file)
 
-    startTimer(*nSecond)
-
-    interactQuiz(records, limit, *isShuffled)
+    interactQuiz(records, limit, *timeLimit, *isShuffled)
 }
 
 func exit(msg string) {
@@ -76,7 +74,7 @@ func readQuiz(file io.Reader) []Quiz {
     return records
 }
 
-func interactQuiz(records []Quiz, limits int, isShuffled bool) {
+func interactQuiz(records []Quiz, limits int, timeLimit int, isShuffled bool) {
     n := int(len(records))
     nCorrect := 0
     reader := bufio.NewReader(os.Stdin)
@@ -88,21 +86,35 @@ func interactQuiz(records []Quiz, limits int, isShuffled bool) {
         quizNumbers = makeRange(limits)
     }
 
+    timer := time.NewTimer(time.Duration(timeLimit) * time.Second)
+    quizloop:
     for _, n := range quizNumbers {
         record := records[int(n)]
         fmt.Printf("%s: ", record.statement)
-        answer, _ := reader.ReadString('\n')
-        answer = strings.Trim(answer, "\n")
-        if answer == "exit" {
-            break
+
+        answerCh := make(chan string)
+        go func() {
+            answer, _ := reader.ReadString('\n')
+            answer = strings.Trim(answer, "\n")
+            answerCh <- answer
+        }()
+
+        select {
+        case <- timer.C:
+            fmt.Println()
+            break quizloop
+        case answer := <-answerCh:
+            if answer == "exit" {
+                break
+            }
+            if answer == record.answer {
+                fmt.Printf("正解！\n")
+                nCorrect += 1
+            } else {
+                fmt.Printf("不正解！ 答えは%sでした。\n", record.answer)
+            }
+            fmt.Printf("\n")
         }
-        if answer == record.answer {
-            fmt.Printf("正解！\n")
-            nCorrect += 1
-        } else {
-            fmt.Printf("不正解！ 答えは%sでした。\n", record.answer)
-        }
-        fmt.Printf("\n")
     }
 
     fmt.Printf("クイズ終了！ あなたの正解数は%d/%dで、正解率は%d%%", nCorrect, limits, nCorrect*100/limits)
